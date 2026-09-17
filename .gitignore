@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+*.spec
+.pytest_cache/
+.DS_Store
+Thumbs.db
+settings.json
+logs/
+twins_index.db
+moves.jsonl
