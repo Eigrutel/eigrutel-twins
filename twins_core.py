@@ -140,16 +140,42 @@ def scan_folder(folder, recursive=True, destination=None, cancel=None, progress=
 
 def save_index(database, records, folder):
     """Atomically replace the old index only after a complete scan."""
-    with sqlite3.connect(database) as connection:
-        connection.execute('CREATE TABLE IF NOT EXISTS images '
-                           '(path TEXT PRIMARY KEY, size INTEGER, mtime_ns INTEGER, device INTEGER, '
-                           'inode TEXT, width INTEGER, height INTEGER, sha256 TEXT, visual_hash TEXT)')
-        connection.execute('CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT)')
-        connection.execute('DELETE FROM images')
-        connection.executemany('INSERT INTO images VALUES (?,?,?,?,?,?,?,?,?)',
-            [(r.path, r.size, r.mtime_ns, r.device, str(r.inode), r.width, r.height,
-              r.sha256, f'{r.visual_hash:016x}') for r in records])
-        connection.execute('INSERT OR REPLACE INTO metadata VALUES (?,?)', ('folder', folder))
+    connection = sqlite3.connect(database)
+    try:
+        with connection:
+            connection.execute(
+                'CREATE TABLE IF NOT EXISTS images '
+                '(path TEXT PRIMARY KEY, size INTEGER, mtime_ns INTEGER, device INTEGER, '
+                'inode TEXT, width INTEGER, height INTEGER, sha256 TEXT, visual_hash TEXT)'
+            )
+            connection.execute(
+                'CREATE TABLE IF NOT EXISTS metadata '
+                '(key TEXT PRIMARY KEY, value TEXT)'
+            )
+            connection.execute('DELETE FROM images')
+            connection.executemany(
+                'INSERT INTO images VALUES (?,?,?,?,?,?,?,?,?)',
+                [
+                    (
+                        r.path,
+                        r.size,
+                        r.mtime_ns,
+                        r.device,
+                        str(r.inode),
+                        r.width,
+                        r.height,
+                        r.sha256,
+                        f'{r.visual_hash:016x}',
+                    )
+                    for r in records
+                ],
+            )
+            connection.execute(
+                'INSERT OR REPLACE INTO metadata VALUES (?,?)',
+                ('folder', folder),
+            )
+    finally:
+        connection.close()
 
 
 def exact_groups(records, cancel=None):
