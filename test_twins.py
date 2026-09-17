@@ -113,11 +113,26 @@ class CoreTests(unittest.TestCase):
         rows = self.records()
         db = self.base / 'index.db'
         core.save_index(db, rows, str(self.source))
+
         with self.assertRaises(sqlite3.IntegrityError):
             core.save_index(db, [rows[0], rows[0]], 'replacement')
-        with sqlite3.connect(db) as connection:
-            self.assertEqual(connection.execute('SELECT count(*) FROM images').fetchone()[0], 2)
-            self.assertEqual(connection.execute('SELECT value FROM metadata WHERE key="folder"').fetchone()[0], str(self.source))
+
+        connection = sqlite3.connect(db)
+        try:
+            self.assertEqual(
+                connection.execute(
+                    'SELECT count(*) FROM images'
+                ).fetchone()[0],
+                2,
+            )
+            self.assertEqual(
+                connection.execute(
+                    'SELECT value FROM metadata WHERE key="folder"'
+                ).fetchone()[0],
+                str(self.source),
+            )
+        finally:
+            connection.close()
 
     def test_move_preserves_bytes_and_writes_log(self):
         record = self.records()[0]
